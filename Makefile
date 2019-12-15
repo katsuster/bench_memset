@@ -1,3 +1,4 @@
+CFLAGS ?= -Wall -g -O3 -fno-builtin -march=native
 
 all:
 	$(CC) $(CFLAGS) main.c glibc.c musl.c simple.c -o a.out \
