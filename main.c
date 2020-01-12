@@ -7,6 +7,7 @@ void *memset_musl(void *dest, int c, size_t n);
 void *memset_simple(void *dest, int c, size_t n);
 void *__memset_avx2_unaligned(void *dest, int c, size_t n);
 void *memset_musl_asm(void *dest, int c, size_t n);
+void *memset_neon(void *dest, int c, size_t n);
 
 typedef void * (*memset_func_t)(void *, int, size_t);
 
@@ -61,6 +62,7 @@ struct testcase cases[] = {
 	{ "libc",       memset, },
 	{ "glibc avx2", __memset_avx2_unaligned, },
 	{ "musl asm",   memset_musl_asm, },
+	{ "neon",       memset_neon, },
 	{ "glibc C",    memset_glibc, },
 	{ "musl C",     memset_musl, },
 	{ "simple",     memset_simple, },
@@ -92,21 +94,55 @@ void test(char *p, size_t size, int cnt)
 	print_timeval(cases);
 }
 
+int verify(char *p, size_t size)
+{
+	char buf[1024 + 128];
+	int res = 0, pos, i;
+
+	if (size > 1024) {
+		printf("%d too large\n", (int)size);
+	}
+
+	for (pos = 0; cases[pos].func; pos++) {
+		for (i = 0; i < 256; i++) {
+			//canary
+			memset(buf, i - 1, size + 128);
+			memset(p, i - 1, size + 128);
+
+			memset(buf, i, size);
+			cases[pos].func(p, i, size);
+			if (memcmp(buf, p, size + 128) != 0) {
+				printf("NG: %10s: data:%d, size:%d\n",
+					cases[pos].name, i, (int)size);
+				res = 1;
+			}
+		}
+	}
+
+	return res;
+}
+
 int main(int argc, char *argv[])
 {
+	const int off = 0;
+	size_t modsize = sizeof(tmpbuf) - off;
 	int i;
+
+	for (i = 1; i < 1024; i += 1) {
+		verify(&tmpbuf[off], i);
+	}
 
 	flag_head = 0;
 	flag_print = 0;
-	test(tmpbuf, sizeof(tmpbuf), 1);
+	test(&tmpbuf[off], modsize, 1);
 
 	flag_head = 1;
 	flag_print = 1;
-	test(tmpbuf, sizeof(tmpbuf), 1);
+	test(&tmpbuf[off], modsize, 1);
 
 	flag_head = 0;
 	for (i = 1; i < 63; i += 1) {
-		test(tmpbuf, i, sizeof(tmpbuf) / i);
+		test(&tmpbuf[off], i, modsize / i);
 	}
 
 	return 0;
