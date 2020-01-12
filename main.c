@@ -5,9 +5,13 @@
 void *memset_glibc(void *dest, int c, size_t n);
 void *memset_musl(void *dest, int c, size_t n);
 void *memset_simple(void *dest, int c, size_t n);
-void *__memset_avx2_unaligned(void *dest, int c, size_t n);
-void *memset_musl_asm(void *dest, int c, size_t n);
 void *memset_neon(void *dest, int c, size_t n);
+#ifdef __AVX2__
+void *__memset_avx2_unaligned(void *dest, int c, size_t n);
+#endif
+#ifdef __x86__
+void *memset_musl_asm(void *dest, int c, size_t n);
+#endif
 
 typedef void * (*memset_func_t)(void *, int, size_t);
 
@@ -60,8 +64,12 @@ char tmpbuf[1024 * 1024 * 1024];
 
 struct testcase cases[] = {
 	{ "libc",       memset, },
+#ifdef __AVX2__
 	{ "glibc avx2", __memset_avx2_unaligned, },
+#endif
+#ifdef __x86__
 	{ "musl asm",   memset_musl_asm, },
+#endif
 	{ "neon",       memset_neon, },
 	{ "glibc C",    memset_glibc, },
 	{ "musl C",     memset_musl, },
