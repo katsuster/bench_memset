@@ -37,14 +37,6 @@ void *memset_neon(void *dest, int c, size_t n)
 		uint64_t uc = vgetq_lane_u64(uvl, 0);
 		*((uint64_t *)(s)) = uc;
 		*((uint64_t *)(e - 8)) = uc;
-	} else if (unlikely(n <= 24)) {
-		uint64x2_t uvl = vreinterpretq_u64_u8(uv);
-		uint64_t uc = vgetq_lane_u64(uvl, 0);
-		vst1q_u8(s, uv);
-		*((uint64_t *)(e - 8)) = uc;
-	} else if (unlikely(n <= 32)) {
-		vst1q_u8(s, uv);
-		vst1q_u8(e - 16, uv);
 	} else {
 		for (; likely(s < e - 32); s += 32) {
 			vst1q_u8(s, uv);
